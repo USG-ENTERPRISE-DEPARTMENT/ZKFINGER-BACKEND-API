@@ -1,0 +1,88 @@
+server:
+  port: ${SERVER_PORT:8070}
+  error:
+    whitelabel:
+      enabled: false
+    include-message: always
+  shutdown: graceful
+  tomcat:
+    # Capture blocks a request thread while it waits for a finger, so the pool must be
+    # comfortably larger than the number of concurrent operators at the terminal.
+    threads:
+      max: 50
+
+spring:
+  application:
+    name: zkfinger-backend-api
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+
+  datasource:
+    # Credentials come from the environment. Never commit real values to this file.
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/image}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      pool-name: fingerprint-pool
+      maximum-pool-size: ${DB_POOL_MAX:20}
+      minimum-idle: ${DB_POOL_MIN:5}
+      connection-timeout: 10000
+      idle-timeout: 300000
+      max-lifetime: 1800000
+      # Verifies a pooled connection is still usable before handing it out.
+      connection-test-query: SELECT 1
+
+# Upstream service consulted for customer details after a match.
+external:
+  api:
+    base-url: ${EXTERNAL_API_BASE_URL:http://10.203.14.169/imaging/}
+    timeout-seconds: ${EXTERNAL_API_TIMEOUT:30}
+
+security:
+  cors:
+    # Origins permitted to drive the reader. Narrow this to the real client hosts.
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:*,http://127.0.0.1:*}
+
+fingerprint:
+  device:
+    index: ${FP_DEVICE_INDEX:0}
+    auto-initialize: true
+    # 0 = ANSI-378, 1 = ISO 19794-2, 2 = ZK proprietary.
+    # This MUST match the format of the templates already in the database.
+    template-format: ${FP_TEMPLATE_FORMAT:0}
+    max-template-size: 2048
+    capture-timeout: ${FP_CAPTURE_TIMEOUT:15s}
+    capture-poll-interval: 120ms
+    fake-detection-enabled: ${FP_FAKE_DETECTION:false}
+    enroll-samples: 3
+    reconnect-interval-ms: 30000
+
+  identification:
+    batch-size: 1000
+    single-thread-threshold: 100
+    # 0 means one worker per available processor, capped at 8.
+    max-threads: 0
+    timeout: 60s
+    min-stored-quality: 0
+    min-capture-quality: 0
+    # DBMatch similarity score. The SDK demo treats any positive score as a match, which is
+    # far too permissive for a one-to-many search over many records. Raise this if false
+    # matches appear; lower it if genuine fingers are rejected.
+    match-score-threshold: ${FP_MATCH_THRESHOLD:60}
+
+  image:
+    jpeg-quality: 0.2
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
+logging:
+  level:
+    com.unionsg.zkfinger: ${LOG_LEVEL:INFO}

@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.3.5</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.unionsg</groupId>
+    <artifactId>zkfinger-backend-api</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+    <name>ZKFinger Backend API</name>
+    <description>Fingerprint capture and identification service backed by the ZKTeco ZKFinger SDK</description>
+
+    <properties>
+        <java.version>17</java.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <zkfinger.jar>${project.basedir}/lib/ZKFingerReader.jar</zkfinger.jar>
+
+        <!--
+          The artifact targets Java 17, but developer machines here run a Java 24 JDK.
+          The Mockito and Byte Buddy versions managed by Boot 3.3 cannot instrument classes
+          on that JDK ("Could not modify all classes"), so both are raised. Remove these two
+          overrides once the Spring Boot parent ships versions that already support the JDK
+          in use.
+        -->
+        <mockito.version>5.14.2</mockito.version>
+        <byte-buddy.version>1.15.11</byte-buddy.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jdbc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!--
+          ZKFinger Reader JNI bindings. The jar ships with the Windows SDK and is not
+          published to Maven Central, so it is vendored under lib/ and installed into
+          the local repository by `mvn initialize` (see maven-install-plugin below).
+        -->
+        <dependency>
+            <groupId>com.zkteco</groupId>
+            <artifactId>zkfinger-reader</artifactId>
+            <version>10.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+
+            <!-- Installs the vendored SDK jar so the coordinates above resolve. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-install-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>install-zkfinger-sdk</id>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>install-file</goal>
+                        </goals>
+                        <configuration>
+                            <file>${zkfinger.jar}</file>
+                            <groupId>com.zkteco</groupId>
+                            <artifactId>zkfinger-reader</artifactId>
+                            <version>10.0</version>
+                            <packaging>jar</packaging>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

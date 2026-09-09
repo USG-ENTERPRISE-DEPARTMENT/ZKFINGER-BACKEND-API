@@ -1,0 +1,20 @@
+target/
+bin/
+*.class
+
+# IDE
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+.vscode/
+
+# JVM crash logs
+hs_err_pid*.log
+replay_pid*.log
+
+# Local overrides; may contain credentials
+application-local.yml
+application-local.properties
+.env
